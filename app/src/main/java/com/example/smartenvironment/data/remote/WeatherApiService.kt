@@ -14,7 +14,9 @@ data class WeatherResponse(
 )
 
 data class Weather(
-    @SerializedName("description") val description: String
+    @SerializedName("main") val main: String, // Ej: "Clouds", "Clear", "Rain"
+    @SerializedName("description") val description: String,
+    @SerializedName("icon") val icon: String // Ej: "01d", "10n"
 )
 
 data class Main(
