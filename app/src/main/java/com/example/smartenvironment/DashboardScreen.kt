@@ -33,8 +33,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -64,7 +67,6 @@ import androidx.tv.material3.Border
 import androidx.tv.material3.Card
 import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.Icon
 import com.example.smartenvironment.data.AlertData
 import com.example.smartenvironment.data.Reminder
 import com.example.smartenvironment.data.WeatherData
@@ -89,7 +91,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
     )
 
     if (viewModel.showLocationDialog) {
-        LocationInputDialog(
+        LocationSelectorDialog(
             onConfirm = {
                 viewModel.updateWeatherLocation(it)
                 viewModel.closeLocationDialog()
@@ -237,7 +239,6 @@ fun AlertCard(alert: AlertData, onDismiss: () -> Unit) {
         }
     }
 }
-
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -522,33 +523,48 @@ private fun AddReminderDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LocationInputDialog(
+private fun LocationSelectorDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var text by remember { mutableStateOf("") }
+    val coahuilaCities = listOf("Saltillo", "Torreón", "Monclova", "Piedras Negras", "Acuña", "Ramos Arizpe", "Sabinas", "Múzquiz", "Parras de la Fuente", "San Pedro")
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCity by remember { mutableStateOf(coahuilaCities.first()) }
+
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.medium, modifier = Modifier.width(400.dp)) {
+        Surface(shape = MaterialTheme.shapes.medium, modifier = Modifier.width(300.dp)) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Cambiar Ubicación", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(16.dp))
-                TextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { val hint = "Escribe una ciudad"; Text(hint) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Text(text = "Selecciona una Ciudad", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Box {
+                    TextButton(onClick = { expanded = true }) {
+                        Text(selectedCity, style = MaterialTheme.typography.bodyLarge)
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        coahuilaCities.forEach { city ->
+                            DropdownMenuItem(text = { Text(city) }, onClick = { 
+                                selectedCity = city
+                                expanded = false
+                             })
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    Button(onClick = onDismiss) { Text("Cancelar") }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Button(onClick = { onConfirm(text) }) { Text("Confirmar") }
+                    TextButton(onClick = onDismiss) { Text("Cancelar") }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { onConfirm(selectedCity) }) { Text("Confirmar") }
                 }
             }
         }

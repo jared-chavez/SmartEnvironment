@@ -121,16 +121,19 @@ class DashboardViewModel : ViewModel() {
     private fun listenToWeatherLocation() {
         settingsDocRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
-                fetchWeather("Saltillo") // Usar default en caso de error
+                fetchWeather(weatherLocation) // Usar default en caso de error
                 showAlert("Error al leer la ubicación", AlertType.WARNING)
                 return@addSnapshotListener
             }
+
             val locationFromDb = snapshot?.getString("weather_location")
-            if (locationFromDb != null && locationFromDb != weatherLocation) {
-                weatherLocation = locationFromDb
-                fetchWeather(locationFromDb)
-            } else if (locationFromDb == null) {
-                fetchWeather(weatherLocation) // Cargar clima por primera vez
+            if (locationFromDb != null) {
+                if (locationFromDb != weatherLocation) {
+                    weatherLocation = locationFromDb
+                    fetchWeather(locationFromDb)
+                }
+            } else {
+                // Si no existe, crea el campo con la ubicación por defecto
                 settingsDocRef.set(mapOf("weather_location" to weatherLocation))
             }
         }
@@ -200,7 +203,7 @@ class DashboardViewModel : ViewModel() {
     }
 
     fun toggleReminderCompleted(reminderId: String, isCompleted: Boolean) {
-        remindersCollectionRef.document(reminderId).update("completed", isCompleted)
+        remindersCollectionRef.document(reminderId).update("isCompleted", isCompleted)
             .addOnSuccessListener { showAlert("Recordatorio ${if (isCompleted) "completado" else "restaurado"}", AlertType.SUCCESS) }
             .addOnFailureListener { showAlert("Error al actualizar recordatorio", AlertType.ERROR) }
     }
