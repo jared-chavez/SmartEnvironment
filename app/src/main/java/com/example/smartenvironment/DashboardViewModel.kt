@@ -24,6 +24,8 @@ import java.util.Locale
 class DashboardViewModel : ViewModel() {
 
     // --- Estados de la UI ---
+    var currentScreen by mutableStateOf(Screen.HOME)
+        private set
     var lightStatus by mutableStateOf(false)
         private set
     var bluetoothStatus by mutableStateOf(false)
@@ -64,6 +66,11 @@ class DashboardViewModel : ViewModel() {
         listenToDeviceStatus(lightDocRef, "Luz de la sala") { lightStatus = it }
         listenToDeviceStatus(bluetoothDocRef, "Bocina Bluetooth") { bluetoothStatus = it }
         listenToDeviceStatus(coffeeDocRef, "Cafetera") { coffeeMakerStatus = it }
+    }
+
+    // --- Lógica de Navegación ---
+    fun navigateTo(screen: Screen) {
+        currentScreen = screen
     }
 
     // --- Lógica de UI ---

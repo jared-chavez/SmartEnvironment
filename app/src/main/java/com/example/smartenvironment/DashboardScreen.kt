@@ -18,10 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lightbulb
@@ -30,13 +28,11 @@ import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,7 +55,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -68,7 +63,6 @@ import androidx.tv.material3.Card
 import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import com.example.smartenvironment.data.AlertData
-import com.example.smartenvironment.data.Reminder
 import com.example.smartenvironment.data.WeatherData
 import com.example.smartenvironment.data.WeatherIconType
 import com.example.smartenvironment.ui.theme.firstColor
@@ -86,12 +80,13 @@ import java.util.Locale
 fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
     var isSidebarVisible by remember { mutableStateOf(true) }
     val sidebarWidth by animateDpAsState(
-        targetValue = if (isSidebarVisible) 200.dp else 0.dp,
+        targetValue = if (isSidebarVisible) 250.dp else 0.dp,
         label = "sidebarWidth"
     )
 
     if (viewModel.showLocationDialog) {
         LocationSelectorDialog(
+            currentLocation = viewModel.weatherLocation,
             onConfirm = {
                 viewModel.updateWeatherLocation(it)
                 viewModel.closeLocationDialog()
@@ -118,11 +113,28 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
                     .fillMaxHeight()
                     .width(sidebarWidth)
                     .background(secondColor)
-                    .padding(if (isSidebarVisible) 24.dp else 0.dp),
-                contentAlignment = Alignment.Center
+                    .padding(if (isSidebarVisible) 16.dp else 0.dp),
+                contentAlignment = Alignment.TopStart
             ) {
                 if (isSidebarVisible) {
-                    Text("Info", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Spacer(modifier = Modifier.height(72.dp))
+                        TextButton(onClick = { viewModel.navigateTo(Screen.HOME) }) {
+                            Text("Inicio", color = Color.White, textAlign = TextAlign.Start)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { viewModel.navigateTo(Screen.APPLIANCES) }) {
+                            Text("Electrodomésticos", color = Color.White, textAlign = TextAlign.Start)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { viewModel.navigateTo(Screen.REMINDERS) }) {
+                            Text("Recordatorios", color = Color.White, textAlign = TextAlign.Start)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { viewModel.navigateTo(Screen.WEATHER) }) {
+                            Text("Clima", color = Color.White, textAlign = TextAlign.Start)
+                        }
+                    }
                 }
             }
 
@@ -132,74 +144,83 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
                     .fillMaxSize()
                     .padding(32.dp)
             ) {
-                IconButton(onClick = { isSidebarVisible = !isSidebarVisible }) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Toggle Sidebar",
-                        tint = thirdColor
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { isSidebarVisible = !isSidebarVisible }) {
+                        Icon(
+                            imageVector = if (isSidebarVisible) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
+                            contentDescription = "Toggle Sidebar",
+                            tint = thirdColor
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(text = viewModel.currentScreen.title, style = MaterialTheme.typography.headlineLarge, color = thirdColor)
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(text = "Hola, Familia", style = MaterialTheme.typography.headlineLarge, color = thirdColor)
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Fila de Dispositivos
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    DeviceCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Luz Sala",
-                        icon = Icons.Default.Lightbulb,
-                        isOn = viewModel.lightStatus,
-                        onClick = { viewModel.toggleLightStatus() }
-                    )
-                    DeviceCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Bocina BT",
-                        icon = Icons.Default.Bluetooth,
-                        isOn = viewModel.bluetoothStatus,
-                        onClick = { viewModel.toggleBluetoothStatus() }
-                    )
-                    DeviceCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Cafetera",
-                        icon = Icons.Default.Coffee,
-                        isOn = viewModel.coffeeMakerStatus,
-                        onClick = { viewModel.toggleCoffeeMakerStatus() }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Tarjeta Clima
-                    WeatherCard(
-                        modifier = Modifier.weight(1f),
-                        weatherData = viewModel.weatherData,
-                        location = viewModel.weatherLocation,
-                        statusMessage = viewModel.weatherStatusMessage,
-                        onClick = { viewModel.openLocationDialog() }
-                    )
-
-                    // Tarjeta Mensajes
-                    RemindersCard(
-                        modifier = Modifier.weight(2f),
-                        reminders = viewModel.reminders,
-                        onAddClick = { viewModel.openAddReminderDialog() },
-                        onDeleteClick = { viewModel.deleteReminder(it) },
-                        onToggleCompleted = { id, completed -> viewModel.toggleReminderCompleted(id, completed) }
-                    )
+                when (viewModel.currentScreen) {
+                    Screen.HOME -> HomeScreen(viewModel)
+                    Screen.APPLIANCES -> AppliancesScreen(viewModel)
+                    Screen.REMINDERS -> RemindersScreen(viewModel)
+                    Screen.WEATHER -> WeatherScreen(viewModel)
                 }
             }
         }
         AlertHost(alerts = viewModel.alerts, onDismiss = { viewModel.dismissAlert(it) })
     }
+}
+
+@Composable
+fun HomeScreen(viewModel: DashboardViewModel) {
+    Column {
+        // Fila de Dispositivos
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            DeviceCard(
+                modifier = Modifier.weight(1f),
+                title = "Luz Sala",
+                icon = Icons.Default.Lightbulb,
+                isOn = viewModel.lightStatus,
+                onClick = { viewModel.toggleLightStatus() }
+            )
+            DeviceCard(
+                modifier = Modifier.weight(1f),
+                title = "Bocina BT",
+                icon = Icons.Default.Bluetooth,
+                isOn = viewModel.bluetoothStatus,
+                onClick = { viewModel.toggleBluetoothStatus() }
+            )
+            DeviceCard(
+                modifier = Modifier.weight(1f),
+                title = "Cafetera",
+                icon = Icons.Default.Coffee,
+                isOn = viewModel.coffeeMakerStatus,
+                onClick = { viewModel.toggleCoffeeMakerStatus() }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        WeatherCard(
+            modifier = Modifier.fillMaxWidth(),
+            weatherData = viewModel.weatherData,
+            location = viewModel.weatherLocation,
+            statusMessage = viewModel.weatherStatusMessage,
+            onClick = { viewModel.openLocationDialog() }
+        )
+    }
+}
+
+@Composable
+fun WeatherScreen(viewModel: DashboardViewModel) {
+    WeatherCard(
+        modifier = Modifier.fillMaxWidth(),
+        weatherData = viewModel.weatherData,
+        location = viewModel.weatherLocation,
+        statusMessage = viewModel.weatherStatusMessage,
+        onClick = { viewModel.openLocationDialog() }
+    )
 }
 
 @Composable
@@ -272,115 +293,6 @@ private fun DeviceCard(
     }
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-private fun RemindersCard(
-    modifier: Modifier = Modifier,
-    reminders: List<Reminder>,
-    onAddClick: () -> Unit,
-    onDeleteClick: (String) -> Unit,
-    onToggleCompleted: (String, Boolean) -> Unit
-) {
-    Card(
-        onClick = { /* No action for now */ },
-        modifier = modifier.height(250.dp),
-        colors = CardDefaults.colors(containerColor = Color.White),
-        border = CardDefaults.border(border = Border(BorderStroke(2.dp, thirdColor)))
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp) // Espacio para el FAB
-            ) {
-                Text("Recordatorios", color = thirdColor, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                if (reminders.isEmpty()) {
-                    Text("No hay recordatorios.", style = MaterialTheme.typography.bodyLarge, color = thirdColor)
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(reminders) { reminder ->
-                            ReminderItem(
-                                reminder = reminder,
-                                onDeleteClick = { onDeleteClick(reminder.id) },
-                                onToggleCompleted = { onToggleCompleted(reminder.id, !reminder.isCompleted) }
-                            )
-                        }
-                    }
-                }
-            }
-            FloatingActionButton(
-                onClick = onAddClick,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                containerColor = secondColor,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar recordatorio")
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReminderItem(
-    reminder: Reminder,
-    onDeleteClick: () -> Unit,
-    onToggleCompleted: () -> Unit
-) {
-    val statusColor = getStatusColor(reminder.reminderAt?.toDate(), reminder.isCompleted)
-    val formattedCreationDate = reminder.createdAt?.toDate()?.let {
-        SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(it)
-    } ?: ""
-    val formattedReminderDate = reminder.reminderAt?.toDate()?.let {
-        SimpleDateFormat("dd/MM/yy HH:mm", Locale.getDefault()).format(it)
-    } ?: ""
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(checked = reminder.isCompleted, onCheckedChange = { onToggleCompleted() })
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = reminder.text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (reminder.isCompleted) Color.Gray else thirdColor,
-                textDecoration = if (reminder.isCompleted) TextDecoration.LineThrough else null
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (reminder.isCompleted) {
-                    Icon(Icons.Default.Check, contentDescription = "Completado", tint = Color.Green, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                }
-                Box(modifier = Modifier.size(10.dp).background(statusColor, MaterialTheme.shapes.small))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "Creado: $formattedCreationDate${if (formattedReminderDate.isNotEmpty()) " | Límite: $formattedReminderDate" else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
-        }
-        IconButton(onClick = onDeleteClick) {
-            Icon(Icons.Default.Delete, contentDescription = "Eliminar recordatorio", tint = Color.Gray)
-        }
-    }
-}
-
-private fun getStatusColor(reminderDate: Date?, isCompleted: Boolean): Color {
-    if (isCompleted) return Color.Green
-    if (reminderDate == null) return Color.Transparent
-
-    val now = Calendar.getInstance().time
-    val oneDayInMillis = 24 * 60 * 60 * 1000
-
-    return when {
-        now.after(reminderDate) -> Color.Red // Vencido
-        (reminderDate.time - now.time) < oneDayInMillis -> Color.Yellow // Advertencia
-        else -> Color(0xFF8BC34A) // A tiempo (verde más suave)
-    }
-}
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -414,8 +326,8 @@ private fun WeatherCard(
                 if (weatherData != null) {
                     val (icon, color) = when (weatherData.iconType) {
                         WeatherIconType.SUNNY -> Icons.Default.WbSunny to Color(0xFFFFC107) // Amarillo
-                        WeatherIconType.CLOUDY -> Icons.Default.Cloud to Color.Gray
-                        WeatherIconType.RAINY -> Icons.Filled.WbCloudy to Color(0xFF2196F3) // Azul
+                        WeatherIconType.CLOUDY -> Icons.Default.WbCloudy to Color.Gray
+                        WeatherIconType.RAINY -> Icons.Default.WbCloudy to Color(0xFF2196F3) // Azul
                         WeatherIconType.PARTLY_CLOUDY -> Icons.Default.WbCloudy to Color.LightGray
                         WeatherIconType.NIGHT -> Icons.Default.NightsStay to Color.LightGray
                         WeatherIconType.UNKNOWN -> Icons.Default.WbSunny to secondColor // Color por defecto
@@ -524,12 +436,17 @@ private fun AddReminderDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LocationSelectorDialog(
+    currentLocation: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val coahuilaCities = listOf("Saltillo", "Torreón", "Monclova", "Piedras Negras", "Acuña", "Ramos Arizpe", "Sabinas", "Múzquiz", "Parras de la Fuente", "San Pedro")
     var expanded by remember { mutableStateOf(false) }
-    var selectedCity by remember { mutableStateOf(coahuilaCities.first()) }
+    var selectedCity by remember { mutableStateOf(currentLocation) }
+
+    LaunchedEffect(currentLocation) {
+        selectedCity = currentLocation
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = MaterialTheme.shapes.medium, modifier = Modifier.width(300.dp)) {
