@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "461893593624",
+    "project_id": "smart-env",
+    "storage_bucket": "smart-env.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:461893593624:android:94651640531f9d3911b16d",
+        "android_client_info": {
+          "package_name": "com.example.smartenvironment"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVD1QSvWdEuRLOpG8ehhut4-S38W1udU4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
