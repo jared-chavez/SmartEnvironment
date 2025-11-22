@@ -32,7 +32,7 @@ class DashboardViewModel : ViewModel() {
         private set
     var coffeeMakerStatus by mutableStateOf(false)
         private set
-    var weatherData by mutableStateOf<WeatherData?>(null) // <-- Restaurado al modelo simple
+    var weatherData by mutableStateOf<WeatherData?>(null)
         private set
     var weatherLocation by mutableStateOf("Saltillo")
         private set
@@ -44,7 +44,7 @@ class DashboardViewModel : ViewModel() {
         private set
     var reminders by mutableStateOf<List<Reminder>>(emptyList())
         private set
-    var alerts by mutableStateOf<List<AlertData>>(emptyList())
+    var actionLogs by mutableStateOf<List<AlertData>>(emptyList()) // Renombrado de alerts
         private set
     var showAddReminderDialog by mutableStateOf(false)
         private set
@@ -55,7 +55,7 @@ class DashboardViewModel : ViewModel() {
     private val bluetoothDocRef = firestore.collection("smarthome_devices").document("bluetooth_speaker")
     private val coffeeDocRef = firestore.collection("smarthome_devices").document("coffee_maker")
     private val remindersCollectionRef = firestore.collection("reminders")
-    private val alertsCollectionRef = firestore.collection("alerts")
+    private val actionsLogCollectionRef = firestore.collection("actions_logs") // Renombrado de alertsCollectionRef
     private val settingsDocRef = firestore.collection("settings").document("user_settings")
 
     private val apiService = WeatherApiService.create()
@@ -64,7 +64,7 @@ class DashboardViewModel : ViewModel() {
         listenToWeatherLocation()
         listenToFamilyMessage()
         listenToReminders()
-        listenToAlerts()
+        listenToActionLogs() // Renombrado de listenToAlerts
         listenToDeviceStatus(lightDocRef, "Luz de la sala") { lightStatus = it }
         listenToDeviceStatus(bluetoothDocRef, "Bocina Bluetooth") { bluetoothStatus = it }
         listenToDeviceStatus(coffeeDocRef, "Cafetera") { coffeeMakerStatus = it }
@@ -83,14 +83,14 @@ class DashboardViewModel : ViewModel() {
     
     fun dismissAlert(alertId: String) {
         if (alertId.isBlank()) return
-        alertsCollectionRef.document(alertId).delete()
+        actionsLogCollectionRef.document(alertId).delete() // Usa la nueva referencia
     }
 
     // --- Lógica de Dispositivos (Generalizada) ---
     private fun listenToDeviceStatus(docRef: DocumentReference, deviceName: String, onStateChange: (Boolean) -> Unit) {
         docRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
-                showAlert("Error al leer $deviceName", AlertType.ERROR)
+                logAction("Error al leer $deviceName", AlertType.ERROR)
                 return@addSnapshotListener
             }
             if (snapshot != null && snapshot.exists()) {
@@ -103,8 +103,8 @@ class DashboardViewModel : ViewModel() {
 
     fun toggleDeviceStatus(docRef: DocumentReference, deviceName: String, currentStatus: Boolean) {
         docRef.update("isOn", !currentStatus)
-            .addOnSuccessListener { showAlert("$deviceName ${if (!currentStatus) "encendida" else "apagada"}", AlertType.SUCCESS) }
-            .addOnFailureListener { showAlert("Error al cambiar $deviceName", AlertType.ERROR) }
+            .addOnSuccessListener { logAction("$deviceName ${if (!currentStatus) "encendido" else "apagado"}", AlertType.SUCCESS) }
+            .addOnFailureListener { logAction("Error al cambiar $deviceName", AlertType.ERROR) }
     }
 
     // --- Lógica específica (opcional, para claridad) ---
@@ -118,7 +118,7 @@ class DashboardViewModel : ViewModel() {
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
                     familyMessage = "Error al cargar mensaje"
-                    showAlert("Error al leer el pizarrón", AlertType.ERROR)
+                    logAction("Error al leer el pizarrón", AlertType.ERROR)
                     return@addSnapshotListener
                 }
                 familyMessage = if (snapshot != null && snapshot.exists()) {
@@ -133,7 +133,7 @@ class DashboardViewModel : ViewModel() {
         settingsDocRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
                 fetchWeather(weatherLocation)
-                showAlert("Error al leer la ubicación", AlertType.WARNING)
+                logAction("Error al leer la ubicación", AlertType.WARNING)
                 return@addSnapshotListener
             }
 
@@ -155,11 +155,11 @@ class DashboardViewModel : ViewModel() {
     fun updateWeatherLocation(newLocation: String) {
         if (newLocation.isNotBlank() && newLocation != weatherLocation) {
             settingsDocRef.update("weather_location", newLocation)
-                .addOnSuccessListener { showAlert("Ubicación actualizada a $newLocation", AlertType.SUCCESS) }
-                .addOnFailureListener { showAlert("Error al guardar la ubicación", AlertType.ERROR) }
+                .addOnSuccessListener { logAction("Ubicación actualizada a $newLocation", AlertType.SUCCESS) }
+                .addOnFailureListener { logAction("Error al guardar la ubicación", AlertType.ERROR) }
         }
     }
-
+    
     fun fetchWeather(location: String) {
         viewModelScope.launch {
             weatherData = null
@@ -174,7 +174,7 @@ class DashboardViewModel : ViewModel() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 weatherStatusMessage = "Error al cargar el clima"
-                showAlert("No se pudo cargar el clima para $location", AlertType.ERROR)
+                logAction("No se pudo cargar el clima para $location", AlertType.ERROR)
             }
         }
     }
@@ -193,67 +193,63 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun listenToReminders() {
-        remindersCollectionRef.orderBy("createdAt", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    showAlert("Error al cargar recordatorios", AlertType.ERROR)
-                    return@addSnapshotListener
-                }
-                val reminderList = snapshot?.documents?.mapNotNull { it.toObject(Reminder::class.java)?.copy(id = it.id) } ?: emptyList()
-                reminders = reminderList.sortedWith(compareBy<Reminder> { it.isCompleted }.thenByDescending { it.createdAt?.seconds })
+        remindersCollectionRef.addSnapshotListener { snapshot, e ->
+            if (e != null) {
+                logAction("Error al cargar recordatorios", AlertType.ERROR)
+                return@addSnapshotListener
             }
+            val reminderList = snapshot?.documents?.mapNotNull { it.toObject(Reminder::class.java)?.copy(id = it.id) } ?: emptyList()
+            reminders = reminderList.sortedWith(compareBy<Reminder> { it.isCompleted }.thenByDescending { it.createdAt?.seconds })
+        }
     }
 
-    private fun listenToAlerts() {
-        alertsCollectionRef.orderBy("createdAt", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    println("Error listening to alerts: $e")
-                    return@addSnapshotListener
-                }
-                val alertList = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(AlertData::class.java)?.copy(id = doc.id)
-                } ?: emptyList()
-                alerts = alertList
+    private fun listenToActionLogs() { // Renombrado de listenToAlerts
+        actionsLogCollectionRef.addSnapshotListener { snapshot, e -> // Usa la nueva referencia
+            if (e != null) {
+                println("Error listening to action logs: $e") // Mensaje actualizado
+                return@addSnapshotListener
             }
+            val logList = snapshot?.documents?.mapNotNull { doc ->
+                doc.toObject(AlertData::class.java)?.copy(id = doc.id)
+            } ?: emptyList()
+            actionLogs = logList.sortedByDescending { it.createdAt?.seconds ?: 0L } // Usa la nueva lista
+        }
     }
 
     fun addReminder(text: String, reminderDate: Date?) {
         if (text.isBlank()) {
-            showAlert("El recordatorio no puede estar vacío", AlertType.WARNING)
+            logAction("El recordatorio no puede estar vacío", AlertType.WARNING)
             return
         }
         val reminder = Reminder(text = text, reminderAt = reminderDate?.let { Timestamp(it) }, isCompleted = false)
         remindersCollectionRef.add(reminder)
-            .addOnSuccessListener { showAlert("Recordatorio añadido", AlertType.SUCCESS) }
-            .addOnFailureListener { showAlert("Error al añadir recordatorio", AlertType.ERROR) }
+            .addOnSuccessListener { logAction("Recordatorio añadido", AlertType.SUCCESS) }
+            .addOnFailureListener { logAction("Error al añadir recordatorio", AlertType.ERROR) }
     }
 
     fun toggleReminderCompleted(reminderId: String, isCompleted: Boolean) {
-        val currentList = reminders.toMutableList()
-        val itemIndex = currentList.indexOfFirst { it.id == reminderId }
-        if (itemIndex != -1) {
-            val updatedItem = currentList[itemIndex].copy(isCompleted = isCompleted)
-            currentList[itemIndex] = updatedItem
-            reminders = currentList.sortedWith(compareBy<Reminder> { it.isCompleted }.thenByDescending { it.createdAt?.seconds })
-        }
-
+        // Se elimina la actualización optimista para evitar bugs de estado.
+        // La UI se actualizará a través del snapshotListener cuando el cambio se confirme en Firestore.
         remindersCollectionRef.document(reminderId).update("isCompleted", isCompleted)
-            .addOnSuccessListener { showAlert("Recordatorio ${if (isCompleted) "completado" else "restaurado"}", AlertType.SUCCESS) }
-            .addOnFailureListener { 
-                showAlert("Error al actualizar. Revirtiendo cambio.", AlertType.ERROR)
-                listenToReminders() 
+            .addOnSuccessListener {
+                logAction("Recordatorio ${if (isCompleted) "completado" else "restaurado"}", AlertType.SUCCESS)
+            }
+            .addOnFailureListener {
+                logAction("Error al actualizar recordatorio.", AlertType.ERROR)
             }
     }
 
     fun deleteReminder(reminderId: String) {
         remindersCollectionRef.document(reminderId).delete()
-            .addOnSuccessListener { showAlert("Recordatorio eliminado", AlertType.SUCCESS) }
-            .addOnFailureListener { showAlert("Error al eliminar recordatorio", AlertType.ERROR) }
+            .addOnSuccessListener { logAction("Recordatorio eliminado", AlertType.SUCCESS) }
+            .addOnFailureListener { logAction("Error al eliminar recordatorio", AlertType.ERROR) }
     }
 
-    private fun showAlert(message: String, type: AlertType) {
-        val alert = AlertData(message = message, type = type)
-        alertsCollectionRef.add(alert)
+    private fun logAction(message: String, type: AlertType) { // Renombrado de showAlert
+        val log = AlertData(message = message, type = type)
+        actionsLogCollectionRef.add(log) // Usa la nueva referencia
+            .addOnFailureListener { e ->
+                println("FATAL: Could not write action log to Firestore: $e") // Mensaje actualizado
+            }
     }
 }

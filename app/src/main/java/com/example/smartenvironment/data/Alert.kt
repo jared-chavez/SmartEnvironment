@@ -1,14 +1,14 @@
 package com.example.smartenvironment.data
 
-import androidx.compose.ui.graphics.Color
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.ServerTimestamp
-import java.util.Date
 
-enum class AlertType(val color: Color) {
-    SUCCESS(Color(0xFF4CAF50)),
-    WARNING(Color(0xFFFFC107)),
-    ERROR(Color(0xFFF44336))
+// Se eliminó la propiedad de color de la enumeración.
+// La lógica del color ahora debe estar en la capa de la interfaz de usuario.
+enum class AlertType {
+    SUCCESS,
+    WARNING,
+    ERROR
 }
 
 data class AlertData(

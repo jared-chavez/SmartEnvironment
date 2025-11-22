@@ -1,43 +1,67 @@
-# SmartEnvironment TV
+# Smart Environment App
 
-## Descripción
+<p align="center">
+  <img src="app/src/main/res/drawable/logo_se.png" alt="App Logo" width="150"/>
+</p>
 
-**SmartEnvironment TV** es una aplicación para Android TV diseñada para actuar como un centro de control inteligente para el hogar. Provee una interfaz de usuario optimizada para televisores (UI de 10 pies) que permite a la familia interactuar con dispositivos del hogar, consultar información relevante y comunicarse, todo desde la comodidad de la sala.
+<p align="center">
+    <em>Un panel de control para un entorno inteligente, construido con Jetpack Compose y Firebase.</em>
+</p>
 
-## Módulos y Funcionalidades
+---
 
-La aplicación cuenta con los siguientes módulos principales:
+## 📋 Descripción General
 
-1.  **Dashboard Principal:**
-    *   Una vista de resumen con tarjetas grandes y legibles, ideal para la visualización a distancia.
-    *   Saluda a la familia y presenta un acceso rápido a todas las funcionalidades.
+**Smart Environment** es una aplicación nativa de Android que funciona como un dashboard centralizado para la gestión de un hogar u oficina inteligente. Permite a los usuarios interactuar con dispositivos conectados, monitorear información ambiental en tiempo real y organizar sus tareas personales, todo sincronizado a través de Firebase Firestore.
 
-2.  **Módulo de Domótica (Control de Dispositivos):**
-    *   Permite controlar el estado (encender/apagar) de diferentes dispositivos del hogar.
-    *   Actualmente implementado con estados simulados para:
-        *   Luz de la Sala
-        *   Bocina Bluetooth
-        *   Cafetera
+## ✨ Funcionalidades Principales
 
-3.  **Módulo de Clima:**
-    *   Muestra la temperatura actual y una breve descripción del clima.
-    *   Obtiene los datos de una API externa de clima, permitiendo al usuario configurar la ubicación.
+- **Control de Dispositivos:** Gestión en tiempo real del estado (encendido/apagado) de luces, bocinas, cafeteras y otros dispositivos.
+- **Monitor de Clima:** Muestra las condiciones meteorológicas actuales obtenidas de una API externa, permitiendo al usuario cambiar de ubicación.
+- **Gestión de Recordatorios:** Un sistema de tareas pendientes (To-Do) donde los usuarios pueden añadir, completar y eliminar recordatorios.
+- **Historial de Acciones:** Cada interacción importante (cambios de estado de dispositivos, creación de recordatorios, etc.) se registra automáticamente en una colección `actions_logs` en Firestore, proveyendo una bitácora para auditoría.
+- **Interfaz Responsiva:** Construida con Jetpack Compose, la UI se adapta a diferentes tamaños de pantalla, incluyendo tabletas y dispositivos de formato grande como TVs.
 
-4.  **Módulo de Mensajes (Pizarrón Familiar):**
-    *   Muestra un mensaje destacado para toda la familia, funcionando como un pizarrón de notas digital.
-    *   Actualmente muestra un mensaje local, con planes de sincronización en la nube (ej. Firebase).
+## 🛠️ Arquitectura y Stack Tecnológico
 
-## Cómo Compilar y Ejecutar
+La aplicación sigue una arquitectura moderna **MVVM (Model-View-ViewModel)** para asegurar una separación clara de responsabilidades y facilitar el mantenimiento.
 
-1.  **Configuración:**
-    *   Clona o descarga este repositorio.
-    *   Abre el proyecto con una versión reciente de Android Studio.
-    *   El proyecto utiliza Gradle y las dependencias necesarias se descargarán automáticamente.
+- **View (UI Layer):** Construida 100% con **Jetpack Compose**. Los Composables son "tontos" y se limitan a mostrar el estado provisto por el ViewModel.
+- **ViewModel (Logic Layer):** El `DashboardViewModel` centraliza toda la lógica de negocio, gestiona el estado de la UI y actúa como única fuente de verdad para la interfaz.
+- **Model (Data Layer):** Compuesto por:
+    - **Clases de Datos Kotlin:** (`Reminder`, `AlertData`, `WeatherData`) que modelan la información.
+    - **Firebase Firestore:** Como base de datos NoSQL en tiempo real para sincronizar el estado entre la app y la nube.
+    - **Retrofit:** Para gestionar las llamadas de red a la API del clima de forma eficiente.
 
-2.  **Emulador:**
-    *   En el AVD Manager de Android Studio, crea un nuevo emulador de tipo **TV** (se recomienda una resolución de 1080p) con una versión de API 33 o superior.
-    *   Inicia el emulador.
+### Tecnologías Clave:
+- **Lenguaje:** Kotlin
+- **UI Toolkit:** Jetpack Compose
+- **Base de Datos:** Firebase Firestore
+- **Llamadas de Red:** Retrofit & Gson
+- **Asincronía:** Kotlin Coroutines
+- **Gestión de Estado:** `StateFlow` y `mutableStateOf` con `ViewModel` de Jetpack.
 
-3.  **Ejecución:**
-    *   Selecciona el emulador de TV recién creado como el dispositivo de destino.
-    *   Presiona el botón "Run" (▶️) en Android Studio. La aplicación se compilará e instalará en el emulador.
+## 🔧 Configuración e Instalación
+
+1.  **Clonar el Repositorio:**
+    ```bash
+    git clone https://github.com/tu-usuario/smart-environment.git
+    ```
+2.  **Conexión con Firebase:**
+    - Descarga tu propio archivo `google-services.json` desde la consola de Firebase.
+    - Coloca el archivo en el directorio `app/`.
+
+3.  **Compilar y Ejecutar:**
+    - Abre el proyecto en Android Studio.
+    - Sincroniza las dependencias de Gradle.
+    - Ejecuta la aplicación en un emulador o dispositivo físico (API 33 recomendado).
+
+## 📂 Estructura del Proyecto
+
+- **`/app/src/main/java/com/example/smartenvironment/`**
+    - `MainActivity.kt`: Punto de entrada de la app.
+    - `DashboardViewModel.kt`: Cerebro de la aplicación, contiene toda la lógica.
+    - **`data/`**: Contiene los modelos de datos (`Reminder`, `AlertData`) y el servicio de red (`WeatherApiService`).
+    - **`ui/`**: Contiene los Composables que definen las pantallas (`DashboardScreen.kt`, `RemindersScreen.kt`, etc.) y el tema de la app.
+- **`/app/build.gradle.kts`**: Define todas las dependencias del proyecto.
+- **`/app/src/main/res/drawable/`**: Contiene los recursos gráficos, incluyendo el logo `logo_se.png`.

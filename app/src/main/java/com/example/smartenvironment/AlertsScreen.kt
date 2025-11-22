@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.smartenvironment.data.AlertData
+import com.example.smartenvironment.data.AlertType
 
 @Composable
 fun AlertsScreen(
@@ -69,12 +70,18 @@ fun AlertsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AlertHistoryCard(alert: AlertData, onDismiss: () -> Unit) {
+    val backgroundColor = when (alert.type) {
+        AlertType.SUCCESS -> Color(0xFF4CAF50)
+        AlertType.WARNING -> Color(0xFFFFC107)
+        AlertType.ERROR -> Color(0xFFF44336)
+    }
+
     Card(
         onClick = { /* No action on card click */ },
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = alert.type.color)
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),

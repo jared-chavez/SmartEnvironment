@@ -3,6 +3,8 @@ package com.example.smartenvironment
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartenvironment.data.AlertData
+import com.example.smartenvironment.data.AlertType
 import com.example.smartenvironment.data.WeatherData
 import com.example.smartenvironment.data.WeatherIconType
 import com.example.smartenvironment.ui.theme.SmartEnvironmentTheme
@@ -163,12 +166,12 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
                         Screen.APPLIANCES -> AppliancesScreen(viewModel)
                         Screen.REMINDERS -> RemindersScreen(viewModel)
                         Screen.WEATHER -> WeatherScreen(viewModel)
-                        Screen.ALERTS -> AlertsScreen(alerts = viewModel.alerts, onDismissAlert = { viewModel.dismissAlert(it) })
+                        Screen.ALERTS -> AlertsScreen(alerts = viewModel.actionLogs, onDismissAlert = { viewModel.dismissAlert(it) })
                     }
                 }
             }
             // AlertHost para mostrar pop-ups temporales
-            AlertHost(alerts = viewModel.alerts, onDismiss = { viewModel.dismissAlert(it) })
+            AlertHost(alerts = viewModel.actionLogs, onDismiss = { viewModel.dismissAlert(it) })
         }
     }
 }
@@ -235,12 +238,17 @@ fun AlertCard(alert: AlertData, onDismiss: () -> Unit) {
         delay(5000) // Desaparece después de 5 segundos
         onDismiss()
     }
+    val backgroundColor = when (alert.type) {
+        AlertType.SUCCESS -> Color(0xFF4CAF50)
+        AlertType.WARNING -> Color(0xFFFFC107)
+        AlertType.ERROR -> Color(0xFFF44336)
+    }
     Card(
         onClick = { onDismiss() },
         modifier = Modifier
             .padding(vertical = 4.dp)
             .width(280.dp),
-        colors = CardDefaults.cardColors(containerColor = alert.type.color)
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -264,13 +272,19 @@ private fun DeviceCard(
     isOn: Boolean,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val elevation by animateDpAsState(if (isPressed) 16.dp else 4.dp, label = "elevation")
+
     Card(
         onClick = onClick,
         modifier = modifier.height(150.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         colors = CardDefaults.cardColors(
             containerColor = if (isOn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        interactionSource = interactionSource
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -298,11 +312,17 @@ fun WeatherCard(
     statusMessage: String,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val elevation by animateDpAsState(if (isPressed) 16.dp else 4.dp, label = "elevation")
+
     Card(
         onClick = onClick,
         modifier = modifier.height(150.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        interactionSource = interactionSource
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Text(
