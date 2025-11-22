@@ -4,5 +4,6 @@ enum class Screen(val title: String) {
     HOME("Hola, Familia"),
     APPLIANCES("Electrodomésticos inteligentes"),
     REMINDERS("Notas/recordatorios"),
-    WEATHER("Clima: reportaje/pronóstico")
+    WEATHER("Clima: reportaje/pronóstico"),
+    ALERTS("Centro de Notificaciones")
 }

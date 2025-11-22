@@ -15,3 +15,4 @@ val firstColor = Color(0xFFECFEFF)  // light cyan
 val secondColor = Color(0xFF00B7C2) // medium turquoise
 val thirdColor = Color(0xFF128494)  // dark turquoise
 val fourthColor = Color(0xFF4EF037) // bright green
+val activeColor = Color(0xFFFFFDE7) // light yellow for active state

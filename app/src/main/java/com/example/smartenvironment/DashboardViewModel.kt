@@ -1,7 +1,6 @@
 package com.example.smartenvironment
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -12,6 +11,7 @@ import com.example.smartenvironment.data.Reminder
 import com.example.smartenvironment.data.WeatherData
 import com.example.smartenvironment.data.WeatherIconType
 import com.example.smartenvironment.data.remote.WeatherApiService
+import com.example.smartenvironment.data.remote.WeatherInfo
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.Query
@@ -32,7 +32,7 @@ class DashboardViewModel : ViewModel() {
         private set
     var coffeeMakerStatus by mutableStateOf(false)
         private set
-    var weatherData by mutableStateOf<WeatherData?>(null)
+    var weatherData by mutableStateOf<WeatherData?>(null) // <-- Restaurado al modelo simple
         private set
     var weatherLocation by mutableStateOf("Saltillo")
         private set
@@ -44,9 +44,10 @@ class DashboardViewModel : ViewModel() {
         private set
     var reminders by mutableStateOf<List<Reminder>>(emptyList())
         private set
+    var alerts by mutableStateOf<List<AlertData>>(emptyList())
+        private set
     var showAddReminderDialog by mutableStateOf(false)
         private set
-    val alerts = mutableStateListOf<AlertData>()
 
     // --- Referencias a Firebase ---
     private val firestore = Firebase.firestore
@@ -54,6 +55,7 @@ class DashboardViewModel : ViewModel() {
     private val bluetoothDocRef = firestore.collection("smarthome_devices").document("bluetooth_speaker")
     private val coffeeDocRef = firestore.collection("smarthome_devices").document("coffee_maker")
     private val remindersCollectionRef = firestore.collection("reminders")
+    private val alertsCollectionRef = firestore.collection("alerts")
     private val settingsDocRef = firestore.collection("settings").document("user_settings")
 
     private val apiService = WeatherApiService.create()
@@ -62,7 +64,7 @@ class DashboardViewModel : ViewModel() {
         listenToWeatherLocation()
         listenToFamilyMessage()
         listenToReminders()
-        // Iniciar listeners para todos los dispositivos
+        listenToAlerts()
         listenToDeviceStatus(lightDocRef, "Luz de la sala") { lightStatus = it }
         listenToDeviceStatus(bluetoothDocRef, "Bocina Bluetooth") { bluetoothStatus = it }
         listenToDeviceStatus(coffeeDocRef, "Cafetera") { coffeeMakerStatus = it }
@@ -78,8 +80,10 @@ class DashboardViewModel : ViewModel() {
     fun closeLocationDialog() { showLocationDialog = false }
     fun openAddReminderDialog() { showAddReminderDialog = true }
     fun closeAddReminderDialog() { showAddReminderDialog = false }
-    fun dismissAlert(alertId: Long) {
-        alerts.removeAll { it.id == alertId }
+    
+    fun dismissAlert(alertId: String) {
+        if (alertId.isBlank()) return
+        alertsCollectionRef.document(alertId).delete()
     }
 
     // --- Lógica de Dispositivos (Generalizada) ---
@@ -92,7 +96,7 @@ class DashboardViewModel : ViewModel() {
             if (snapshot != null && snapshot.exists()) {
                 onStateChange(snapshot.getBoolean("isOn") ?: false)
             } else {
-                docRef.set(mapOf("isOn" to false)) // Crea el documento si no existe
+                docRef.set(mapOf("isOn" to false))
             }
         }
     }
@@ -128,7 +132,7 @@ class DashboardViewModel : ViewModel() {
     private fun listenToWeatherLocation() {
         settingsDocRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
-                fetchWeather(weatherLocation) // Usar default en caso de error
+                fetchWeather(weatherLocation)
                 showAlert("Error al leer la ubicación", AlertType.WARNING)
                 return@addSnapshotListener
             }
@@ -138,10 +142,12 @@ class DashboardViewModel : ViewModel() {
                 if (locationFromDb != weatherLocation) {
                     weatherLocation = locationFromDb
                     fetchWeather(locationFromDb)
+                } else if (weatherData == null) {
+                    fetchWeather(weatherLocation)
                 }
             } else {
-                // Si no existe, crea el campo con la ubicación por defecto
                 settingsDocRef.set(mapOf("weather_location" to weatherLocation))
+                fetchWeather(weatherLocation)
             }
         }
     }
@@ -163,7 +169,7 @@ class DashboardViewModel : ViewModel() {
                 val temp = response.main.temp.toInt()
                 val weather = response.weather.firstOrNull()
                 val description = weather?.description?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() } ?: "No disponible"
-                val iconType = weather?.let { getWeatherIconType(it.main, it.description, it.icon) } ?: WeatherIconType.UNKNOWN
+                val iconType = weather?.let { getWeatherIconType(it) } ?: WeatherIconType.UNKNOWN
                 weatherData = WeatherData(temp, description, iconType)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -173,12 +179,12 @@ class DashboardViewModel : ViewModel() {
         }
     }
 
-    private fun getWeatherIconType(main: String, description: String, iconCode: String): WeatherIconType {
-        return when (main) {
-            "Clear" -> if (iconCode.endsWith("d")) WeatherIconType.SUNNY else WeatherIconType.NIGHT
+    fun getWeatherIconType(weatherInfo: WeatherInfo): WeatherIconType {
+        return when (weatherInfo.main) {
+            "Clear" -> if (weatherInfo.icon.endsWith("d")) WeatherIconType.SUNNY else WeatherIconType.NIGHT
             "Clouds" -> when {
-                description.contains("pocas nubes", ignoreCase = true) -> WeatherIconType.PARTLY_CLOUDY
-                description.contains("nubes dispersas", ignoreCase = true) -> WeatherIconType.PARTLY_CLOUDY
+                weatherInfo.description.contains("pocas nubes", ignoreCase = true) -> WeatherIconType.PARTLY_CLOUDY
+                weatherInfo.description.contains("nubes dispersas", ignoreCase = true) -> WeatherIconType.PARTLY_CLOUDY
                 else -> WeatherIconType.CLOUDY
             }
             "Rain", "Drizzle", "Thunderstorm" -> WeatherIconType.RAINY
@@ -198,6 +204,20 @@ class DashboardViewModel : ViewModel() {
             }
     }
 
+    private fun listenToAlerts() {
+        alertsCollectionRef.orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    println("Error listening to alerts: $e")
+                    return@addSnapshotListener
+                }
+                val alertList = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(AlertData::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+                alerts = alertList
+            }
+    }
+
     fun addReminder(text: String, reminderDate: Date?) {
         if (text.isBlank()) {
             showAlert("El recordatorio no puede estar vacío", AlertType.WARNING)
@@ -210,9 +230,20 @@ class DashboardViewModel : ViewModel() {
     }
 
     fun toggleReminderCompleted(reminderId: String, isCompleted: Boolean) {
+        val currentList = reminders.toMutableList()
+        val itemIndex = currentList.indexOfFirst { it.id == reminderId }
+        if (itemIndex != -1) {
+            val updatedItem = currentList[itemIndex].copy(isCompleted = isCompleted)
+            currentList[itemIndex] = updatedItem
+            reminders = currentList.sortedWith(compareBy<Reminder> { it.isCompleted }.thenByDescending { it.createdAt?.seconds })
+        }
+
         remindersCollectionRef.document(reminderId).update("isCompleted", isCompleted)
             .addOnSuccessListener { showAlert("Recordatorio ${if (isCompleted) "completado" else "restaurado"}", AlertType.SUCCESS) }
-            .addOnFailureListener { showAlert("Error al actualizar recordatorio", AlertType.ERROR) }
+            .addOnFailureListener { 
+                showAlert("Error al actualizar. Revirtiendo cambio.", AlertType.ERROR)
+                listenToReminders() 
+            }
     }
 
     fun deleteReminder(reminderId: String) {
@@ -222,6 +253,7 @@ class DashboardViewModel : ViewModel() {
     }
 
     private fun showAlert(message: String, type: AlertType) {
-        alerts.add(AlertData(message = message, type = type))
+        val alert = AlertData(message = message, type = type)
+        alertsCollectionRef.add(alert)
     }
 }

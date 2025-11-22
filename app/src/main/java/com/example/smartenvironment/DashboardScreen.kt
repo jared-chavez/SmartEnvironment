@@ -20,14 +20,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Coffee
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -58,114 +61,115 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.tv.material3.Border
-import androidx.tv.material3.Card
-import androidx.tv.material3.CardDefaults
-import androidx.tv.material3.ExperimentalTvMaterial3Api
 import com.example.smartenvironment.data.AlertData
 import com.example.smartenvironment.data.WeatherData
 import com.example.smartenvironment.data.WeatherIconType
-import com.example.smartenvironment.ui.theme.firstColor
-import com.example.smartenvironment.ui.theme.fourthColor
-import com.example.smartenvironment.ui.theme.secondColor
-import com.example.smartenvironment.ui.theme.thirdColor
+import com.example.smartenvironment.ui.theme.SmartEnvironmentTheme
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
-    var isSidebarVisible by remember { mutableStateOf(true) }
-    val sidebarWidth by animateDpAsState(
-        targetValue = if (isSidebarVisible) 250.dp else 0.dp,
-        label = "sidebarWidth"
-    )
-
-    if (viewModel.showLocationDialog) {
-        LocationSelectorDialog(
-            currentLocation = viewModel.weatherLocation,
-            onConfirm = {
-                viewModel.updateWeatherLocation(it)
-                viewModel.closeLocationDialog()
-            },
-            onDismiss = { viewModel.closeLocationDialog() }
+    SmartEnvironmentTheme {
+        var isSidebarVisible by remember { mutableStateOf(true) }
+        val sidebarWidth by animateDpAsState(
+            targetValue = if (isSidebarVisible) 250.dp else 0.dp,
+            label = "sidebarWidth"
         )
-    }
 
-    if (viewModel.showAddReminderDialog) {
-        AddReminderDialog(
-            onConfirm = {
-                text, date -> viewModel.addReminder(text, date)
-                viewModel.closeAddReminderDialog()
-            },
-            onDismiss = { viewModel.closeAddReminderDialog() }
-        )
-    }
-
-    Box(modifier = Modifier.fillMaxSize().background(firstColor)) {
-        Row(Modifier.fillMaxSize()) {
-            // Side Panel
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(sidebarWidth)
-                    .background(secondColor)
-                    .padding(if (isSidebarVisible) 16.dp else 0.dp),
-                contentAlignment = Alignment.TopStart
-            ) {
-                if (isSidebarVisible) {
-                    Column(horizontalAlignment = Alignment.Start) {
-                        Spacer(modifier = Modifier.height(72.dp))
-                        TextButton(onClick = { viewModel.navigateTo(Screen.HOME) }) {
-                            Text("Inicio", color = Color.White, textAlign = TextAlign.Start)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = { viewModel.navigateTo(Screen.APPLIANCES) }) {
-                            Text("Electrodomésticos", color = Color.White, textAlign = TextAlign.Start)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = { viewModel.navigateTo(Screen.REMINDERS) }) {
-                            Text("Recordatorios", color = Color.White, textAlign = TextAlign.Start)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = { viewModel.navigateTo(Screen.WEATHER) }) {
-                            Text("Clima", color = Color.White, textAlign = TextAlign.Start)
-                        }
-                    }
-                }
-            }
-
-            // Main Content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { isSidebarVisible = !isSidebarVisible }) {
-                        Icon(
-                            imageVector = if (isSidebarVisible) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
-                            contentDescription = "Toggle Sidebar",
-                            tint = thirdColor
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(text = viewModel.currentScreen.title, style = MaterialTheme.typography.headlineLarge, color = thirdColor)
-                }
-                Spacer(modifier = Modifier.height(20.dp))
-
-                when (viewModel.currentScreen) {
-                    Screen.HOME -> HomeScreen(viewModel)
-                    Screen.APPLIANCES -> AppliancesScreen(viewModel)
-                    Screen.REMINDERS -> RemindersScreen(viewModel)
-                    Screen.WEATHER -> WeatherScreen(viewModel)
-                }
-            }
+        if (viewModel.showLocationDialog) {
+            LocationSelectorDialog(
+                currentLocation = viewModel.weatherLocation,
+                onConfirm = {
+                    viewModel.updateWeatherLocation(it)
+                    viewModel.closeLocationDialog()
+                },
+                onDismiss = { viewModel.closeLocationDialog() }
+            )
         }
-        AlertHost(alerts = viewModel.alerts, onDismiss = { viewModel.dismissAlert(it) })
+
+        if (viewModel.showAddReminderDialog) {
+            AddReminderDialog(
+                onConfirm = { text, date ->
+                    viewModel.addReminder(text, date)
+                    viewModel.closeAddReminderDialog()
+                },
+                onDismiss = { viewModel.closeAddReminderDialog() }
+            )
+        }
+
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            Row(Modifier.fillMaxSize()) {
+                // Side Panel
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(sidebarWidth)
+                        .background(MaterialTheme.colorScheme.secondary)
+                        .padding(if (isSidebarVisible) 16.dp else 0.dp),
+                    contentAlignment = Alignment.TopStart
+                ) {
+                    if (isSidebarVisible) {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Spacer(modifier = Modifier.height(72.dp))
+                            TextButton(onClick = { viewModel.navigateTo(Screen.HOME) }) {
+                                Text("Inicio", color = MaterialTheme.colorScheme.onSecondary, textAlign = TextAlign.Start)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { viewModel.navigateTo(Screen.APPLIANCES) }) {
+                                Text("Electrodomésticos", color = MaterialTheme.colorScheme.onSecondary, textAlign = TextAlign.Start)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { viewModel.navigateTo(Screen.REMINDERS) }) {
+                                Text("Recordatorios", color = MaterialTheme.colorScheme.onSecondary, textAlign = TextAlign.Start)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { viewModel.navigateTo(Screen.WEATHER) }) {
+                                Text("Clima", color = MaterialTheme.colorScheme.onSecondary, textAlign = TextAlign.Start)
+                            }
+                        }
+                    }
+                }
+
+                // Main Content
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        IconButton(onClick = { isSidebarVisible = !isSidebarVisible }) {
+                            Icon(
+                                imageVector = if (isSidebarVisible) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Menu,
+                                contentDescription = "Toggle Sidebar",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(text = viewModel.currentScreen.title, style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+
+                        IconButton(onClick = { viewModel.navigateTo(Screen.ALERTS) }) {
+                            Icon(imageVector = Icons.Default.Notifications, contentDescription = "Centro de Notificaciones", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    when (viewModel.currentScreen) {
+                        Screen.HOME -> HomeScreen(viewModel)
+                        Screen.APPLIANCES -> AppliancesScreen(viewModel)
+                        Screen.REMINDERS -> RemindersScreen(viewModel)
+                        Screen.WEATHER -> WeatherScreen(viewModel)
+                        Screen.ALERTS -> AlertsScreen(alerts = viewModel.alerts, onDismissAlert = { viewModel.dismissAlert(it) })
+                    }
+                }
+            }
+            // AlertHost para mostrar pop-ups temporales
+            AlertHost(alerts = viewModel.alerts, onDismiss = { viewModel.dismissAlert(it) })
+        }
     }
 }
 
@@ -212,33 +216,23 @@ fun HomeScreen(viewModel: DashboardViewModel) {
     }
 }
 
+// Componente para manejar la aparición de pop-ups de alerta
 @Composable
-fun WeatherScreen(viewModel: DashboardViewModel) {
-    WeatherCard(
-        modifier = Modifier.fillMaxWidth(),
-        weatherData = viewModel.weatherData,
-        location = viewModel.weatherLocation,
-        statusMessage = viewModel.weatherStatusMessage,
-        onClick = { viewModel.openLocationDialog() }
-    )
-}
-
-@Composable
-fun AlertHost(modifier: Modifier = Modifier, alerts: List<AlertData>, onDismiss: (Long) -> Unit) {
+fun AlertHost(modifier: Modifier = Modifier, alerts: List<AlertData>, onDismiss: (String) -> Unit) {
     Box(modifier = modifier.fillMaxSize().padding(16.dp)) {
         LazyColumn(modifier = Modifier.align(Alignment.TopEnd)) {
-            items(alerts) { alert ->
+            items(alerts, key = { it.id }) { alert ->
                 AlertCard(alert = alert, onDismiss = { onDismiss(alert.id) })
             }
         }
     }
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+// Card de alerta para el pop-up que se desvanece solo
 @Composable
 fun AlertCard(alert: AlertData, onDismiss: () -> Unit) {
     LaunchedEffect(alert.id) {
-        delay(5000) // 5 segundos
+        delay(5000) // Desaparece después de 5 segundos
         onDismiss()
     }
     Card(
@@ -246,7 +240,7 @@ fun AlertCard(alert: AlertData, onDismiss: () -> Unit) {
         modifier = Modifier
             .padding(vertical = 4.dp)
             .width(280.dp),
-        colors = CardDefaults.colors(containerColor = alert.type.color)
+        colors = CardDefaults.cardColors(containerColor = alert.type.color)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -255,13 +249,13 @@ fun AlertCard(alert: AlertData, onDismiss: () -> Unit) {
         ) {
             Text(text = alert.message, color = Color.White, modifier = Modifier.weight(1f))
             IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Delete, contentDescription = "Cerrar alerta", tint = Color.White)
+                Icon(Icons.Default.Close, contentDescription = "Cerrar alerta", tint = Color.White)
             }
         }
     }
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DeviceCard(
     modifier: Modifier = Modifier,
@@ -273,30 +267,31 @@ private fun DeviceCard(
     Card(
         onClick = onClick,
         modifier = modifier.height(150.dp),
-        colors = CardDefaults.colors(containerColor = Color.White),
-        border = CardDefaults.border(border = Border(BorderStroke(2.dp, thirdColor)))
+        colors = CardDefaults.cardColors(
+            containerColor = if (isOn) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(imageVector = icon, contentDescription = title, modifier = Modifier.size(40.dp), tint = secondColor)
+            Icon(imageVector = icon, contentDescription = title, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.secondary)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(title, color = thirdColor)
+            Text(title, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 text = if (isOn) "ENCENDIDO" else "APAGADO",
-                color = if (isOn) fourthColor else Color.Red,
+                color = if (isOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
         }
     }
 }
 
-
-@OptIn(ExperimentalTvMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WeatherCard(
+fun WeatherCard(
     modifier: Modifier = Modifier,
     weatherData: WeatherData?,
     location: String,
@@ -306,14 +301,14 @@ private fun WeatherCard(
     Card(
         onClick = onClick,
         modifier = modifier.height(150.dp),
-        colors = CardDefaults.colors(containerColor = Color.White),
-        border = CardDefaults.border(border = Border(BorderStroke(2.dp, thirdColor)))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Text(
                 text = location,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                color = thirdColor,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
             )
             Column(
@@ -325,19 +320,19 @@ private fun WeatherCard(
             ) {
                 if (weatherData != null) {
                     val (icon, color) = when (weatherData.iconType) {
-                        WeatherIconType.SUNNY -> Icons.Default.WbSunny to Color(0xFFFFC107) // Amarillo
+                        WeatherIconType.SUNNY -> Icons.Default.WbSunny to Color(0xFFFFC107)
                         WeatherIconType.CLOUDY -> Icons.Default.WbCloudy to Color.Gray
-                        WeatherIconType.RAINY -> Icons.Default.WbCloudy to Color(0xFF2196F3) // Azul
+                        WeatherIconType.RAINY -> Icons.Default.WbCloudy to Color(0xFF2196F3)
                         WeatherIconType.PARTLY_CLOUDY -> Icons.Default.WbCloudy to Color.LightGray
-                        WeatherIconType.NIGHT -> Icons.Default.NightsStay to Color.LightGray
-                        WeatherIconType.UNKNOWN -> Icons.Default.WbSunny to secondColor // Color por defecto
+                        WeatherIconType.NIGHT -> Icons.Default.NightsStay to MaterialTheme.colorScheme.secondary
+                        WeatherIconType.UNKNOWN -> Icons.Default.WbSunny to MaterialTheme.colorScheme.secondary
                     }
                     Icon(imageVector = icon, contentDescription = "Weather Icon", modifier = Modifier.size(40.dp), tint = color)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("${weatherData.temperature}°C", style = MaterialTheme.typography.headlineSmall, color = thirdColor)
-                    Text(weatherData.description, style = MaterialTheme.typography.bodySmall, color = thirdColor)
+                    Text("${weatherData.temperature}°C", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+                    Text(weatherData.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                 } else {
-                    Text(statusMessage, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = thirdColor)
+                    Text(statusMessage, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -346,7 +341,7 @@ private fun WeatherCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddReminderDialog(
+fun AddReminderDialog(
     onConfirm: (String, Date?) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -435,7 +430,7 @@ private fun AddReminderDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LocationSelectorDialog(
+fun LocationSelectorDialog(
     currentLocation: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
